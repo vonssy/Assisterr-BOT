@@ -281,7 +281,7 @@ class Assisterr:
                         self.log(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}"*75)
                         await asyncio.sleep(3)
 
-                seconds = 43200
+                seconds = 6 * 60 * 60
                 while seconds > 0:
                     formatted_time = self.format_seconds(seconds)
                     print(
