@@ -33,8 +33,8 @@ Register Here : [Assisterr](https://build.assisterr.ai/?ref=66aa875402ad9bcc9ae1
 - **accounts.txt:** You will find the file `accounts.txt` inside the project directory. Make sure `accounts.txt` contains data that matches the format expected by the script. Here are examples of file formats:
 
   ```bash
-  your_secret_key_1
-  your_secret_key_2
+    your_private_key_1
+    your_private_key_2
   ```
 
 ## Run
