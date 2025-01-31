@@ -25,7 +25,6 @@ class Assisterr:
             "Sec-Fetch-Site": "same-site",
             "User-Agent": FakeUserAgent().random
         }
-        self.cookie = "ref=66aa875402ad9bcc9ae1f21a"
 
     def clear_terminal(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -92,14 +91,10 @@ class Assisterr:
     
     async def get_message(self, retries=5):
         url = "https://api.assisterr.ai/incentive/auth/login/get_message/"
-        headers = {
-            **self.headers,
-            "Cookie": self.cookie
-        }
         for attempt in range(retries):
             try:
-                async with ClientSession(timeout=ClientTimeout(total=20)) as session:
-                    async with session.get(url=url, headers=headers) as response:
+                async with ClientSession(timeout=ClientTimeout(total=60)) as session:
+                    async with session.get(url=url, headers=self.headers) as response:
                         response.raise_for_status()
                         return await response.json()
             except (Exception, ClientResponseError) as e:
@@ -119,7 +114,7 @@ class Assisterr:
         }
         for attempt in range(retries):
             try:
-                async with ClientSession(timeout=ClientTimeout(total=20)) as session:
+                async with ClientSession(timeout=ClientTimeout(total=60)) as session:
                     async with session.post(url=url, headers=headers, data=data) as response:
                         response.raise_for_status()
                         result = await response.json()
@@ -140,7 +135,7 @@ class Assisterr:
         }
         for attempt in range(retries):
             try:
-                async with ClientSession(timeout=ClientTimeout(total=20)) as session:
+                async with ClientSession(timeout=ClientTimeout(total=60)) as session:
                     async with session.get(url=url, headers=headers) as response:
                         response.raise_for_status()
                         return await response.json()
@@ -160,7 +155,7 @@ class Assisterr:
         }
         for attempt in range(retries):
             try:
-                async with ClientSession(timeout=ClientTimeout(total=20)) as session:
+                async with ClientSession(timeout=ClientTimeout(total=60)) as session:
                     async with session.get(url=url, headers=headers) as response:
                         response.raise_for_status()
                         return await response.json()
@@ -182,7 +177,7 @@ class Assisterr:
         }
         for attempt in range(retries):
             try:
-                async with ClientSession(timeout=ClientTimeout(total=20)) as session:
+                async with ClientSession(timeout=ClientTimeout(total=60)) as session:
                     async with session.post(url=url, headers=headers) as response:
                         response.raise_for_status()
                         return await response.json()
@@ -239,7 +234,7 @@ class Assisterr:
         if claim_time is None:
             claim = await self.claim_daily(token)
             if claim:
-                balance = claim_wib.get("points", 0) / 100
+                balance = claim.get("points", 0) / 100
                 self.log(
                     f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
                     f"{Fore.GREEN+Style.BRIGHT} Is Claimed {Style.RESET_ALL}"
