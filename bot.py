@@ -52,212 +52,215 @@ class Assisterr:
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
     
-    def hide_account(self, account):
-        hide_account = account[:3] + '*' * 3 + account[-3:]
-        return hide_account    
+    def mask_account(self, account):
+        mask_account = account[:6] + '*' * 6 + account[-6:]
+        return mask_account    
 
-    async def generate_payload(self, account: str, message: str):
+    def generate_address(self, account: str):
         try:
             decode_account = b58decode(account)
             signing_key = SigningKey(decode_account[:32])
             verify_key = signing_key.verify_key
 
+            address = b58encode(verify_key.encode()).decode()
+            
+            return address
+
+        except Exception as e:
+            return None
+
+    def generate_payload(self, account: str, address: str, message: str):
+        try:
+            decode_account = b58decode(account)
+            signing_key = SigningKey(decode_account[:32])
+
             encode_message = message.encode('utf-8')
             signature = signing_key.sign(encode_message)
 
             signature_base58 = b58encode(signature.signature).decode()
-            public_key = b58encode(verify_key.encode()).decode()
+
+            data = {
+                "message": message, 
+                "signature": signature_base58, 
+                "key": address
+            }
             
-            return signature_base58, public_key
+            return data
 
         except Exception as e:
-            return None, None
+            return None
     
-    async def get_message(self):
+    async def get_message(self, retries=5):
         url = "https://api.assisterr.ai/incentive/auth/login/get_message/"
         headers = {
             **self.headers,
             "Cookie": self.cookie
         }
-        try:
-            async with ClientSession(timeout=ClientTimeout(total=20)) as session:
-                async with session.get(url=url, headers=headers) as response:
-                    response.raise_for_status()
-                    return await response.json()
-        except (Exception, ClientResponseError) as e:
-            return None
+        for attempt in range(retries):
+            try:
+                async with ClientSession(timeout=ClientTimeout(total=20)) as session:
+                    async with session.get(url=url, headers=headers) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+
+                return None
     
-    async def user_login(self, message: str, signature: str, key: str):
+    async def user_login(self, account: str, address: str, message: str, retries=5):
         url = "https://api.assisterr.ai/incentive/auth/login/"
-        data = json.dumps({"message":message, "signature":signature, "key":key})
+        data = json.dumps(self.generate_payload(account, address, message))
         headers = {
             **self.headers,
             "Content-Length": str(len(data)),
             "Content-Type": "application/json"
         }
-        try:
-            async with ClientSession(timeout=ClientTimeout(total=20)) as session:
-                async with session.post(url=url, headers=headers, data=data) as response:
-                    response.raise_for_status()
-                    return await response.json()
-        except (Exception, ClientResponseError) as e:
-            return None
+        for attempt in range(retries):
+            try:
+                async with ClientSession(timeout=ClientTimeout(total=20)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        result = await response.json()
+                        return result['access_token']
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+
+                return None
     
-    async def refresh_token(self, access_token: str, refresh_token: str):
-        url = "https://api.assisterr.ai/incentive/auth/refresh_token/"
-        data = json.dumps({"refresh_token":refresh_token})
-        headers = {
-            **self.headers,
-            "Authorization": f"Bearer {access_token}",
-            "Content-Length": str(len(data)),
-            "Content-Type": "application/json"
-        }
-        try:
-            async with ClientSession(timeout=ClientTimeout(total=20)) as session:
-                async with session.post(url=url, headers=headers, data=data) as response:
-                    response.raise_for_status()
-                    result = await response.json()
-                    return result['access_token']
-        except (Exception, ClientResponseError) as e:
-            return None
-    
-    async def user_data(self, access_token: str):
+    async def user_data(self, token: str, retries=5):
         url = "https://api.assisterr.ai/incentive/users/me/"
         headers = {
             **self.headers,
-            "Authorization": f"Bearer {access_token}",
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
-        try:
-            async with ClientSession(timeout=ClientTimeout(total=20)) as session:
-                async with session.get(url=url, headers=headers) as response:
-                    response.raise_for_status()
-                    return await response.json()
-        except (Exception, ClientResponseError) as e:
-            return None
+        for attempt in range(retries):
+            try:
+                async with ClientSession(timeout=ClientTimeout(total=20)) as session:
+                    async with session.get(url=url, headers=headers) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+
+                return None
     
-    async def user_meta(self, access_token: str):
+    async def user_meta(self, token: str, retries=5):
         url = "https://api.assisterr.ai/incentive/users/me/meta/"
         headers = {
             **self.headers,
-            "Authorization": f"Bearer {access_token}",
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
-        try:
-            async with ClientSession(timeout=ClientTimeout(total=20)) as session:
-                async with session.get(url=url, headers=headers) as response:
-                    response.raise_for_status()
-                    return await response.json()
-        except (Exception, ClientResponseError) as e:
-            return None
+        for attempt in range(retries):
+            try:
+                async with ClientSession(timeout=ClientTimeout(total=20)) as session:
+                    async with session.get(url=url, headers=headers) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+
+                return None
     
-    async def claim_daily(self, access_token: str):
+    async def claim_daily(self, token: str, retries=5):
         url = "https://api.assisterr.ai/incentive/users/me/daily_points/"
         headers = {
             **self.headers,
-            "Authorization": f"Bearer {access_token}",
+            "Authorization": f"Bearer {token}",
             "Connection": "keep-alive",
             "Content-Length": "0",
             "Content-Type": "application/json"
         }
-        try:
-            async with ClientSession(timeout=ClientTimeout(total=20)) as session:
-                async with session.post(url=url, headers=headers) as response:
-                    response.raise_for_status()
-                    return await response.json()
-        except (Exception, ClientResponseError) as e:
-            return None
+        for attempt in range(retries):
+            try:
+                async with ClientSession(timeout=ClientTimeout(total=20)) as session:
+                    async with session.post(url=url, headers=headers) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+
+                return None
         
-    async def process_accounts(self, account: str):
-        hide_account = self.hide_account(account)
+    async def process_accounts(self, account: str, address: str):
         message = await self.get_message()
         if not message:
             self.log(
-                f"{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}"
-                f"{Fore.YELLOW + Style.BRIGHT} GET Message Failed. {Style.RESET_ALL}"
-                f"{Fore.WHITE + Style.BRIGHT}Assisterr Server Maybe Down{Style.RESET_ALL}"
+                f"{Fore.CYAN+Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} GET Message Failed {Style.RESET_ALL}"
+            )
+            return
+
+        token = await self.user_login(account, address, message)
+        if not token:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} Login Failed {Style.RESET_ALL}"
             )
             return
         
-        signature, key = await self.generate_payload(account, message)
-        if not signature or not key:
-            self.log(
-                f"{Fore.MAGENTA + Style.BRIGHT}[ Account{Style.RESET_ALL}"
-                f"{Fore.WHITE + Style.BRIGHT} {hide_account} {Style.RESET_ALL}"
-                f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
-                f"{Fore.RED + Style.BRIGHT} Generate Payload Failed. {Style.RESET_ALL}"
-                f"{Fore.WHITE + Style.BRIGHT}Your Secret Key Maybe Invalid.{Style.RESET_ALL}"
-                f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
-            )
-            return
-
-        login = await self.user_login(message, signature, key)
-        if not login:
-            self.log(
-                f"{Fore.MAGENTA + Style.BRIGHT}[ Account{Style.RESET_ALL}"
-                f"{Fore.WHITE + Style.BRIGHT} {hide_account} {Style.RESET_ALL}"
-                f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
-                f"{Fore.RED + Style.BRIGHT} Login Failed {Style.RESET_ALL}"
-                f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-            )
-            return
-        
-        access_token = login['access_token']
-        refresh_token = login['refresh_token']
-
-        user = await self.user_data(access_token)
-        if not user:
-            self.log(
-                f"{Fore.MAGENTA + Style.BRIGHT}[ Account{Style.RESET_ALL}"
-                f"{Fore.WHITE + Style.BRIGHT} {login['user']['username']} {Style.RESET_ALL}"
-                f"{Fore.RED + Style.BRIGHT}Data Is None{Style.RESET_ALL}"
-                f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
-            )
-            return
-
         self.log(
-            f"{Fore.MAGENTA + Style.BRIGHT}[ Account{Style.RESET_ALL}"
-            f"{Fore.WHITE + Style.BRIGHT} {user['username']} {Style.RESET_ALL}"
-            f"{Fore.MAGENTA + Style.BRIGHT}] [ Balance{Style.RESET_ALL}"
-            f"{Fore.WHITE + Style.BRIGHT} {user['points']/100} $ASRR {Style.RESET_ALL}"
-            f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+            f"{Fore.CYAN+Style.BRIGHT}Status  :{Style.RESET_ALL}"
+            f"{Fore.GREEN+Style.BRIGHT} Login Success {Style.RESET_ALL}"
         )
-        await asyncio.sleep(1)
 
-        meta = await self.user_meta(access_token)
-        if meta:
-            claim_time = meta['daily_points_start_at']
-            if claim_time is None:
-                check_in = await self.claim_daily(access_token)
-                if check_in:
-                    self.log(
-                        f"{Fore.MAGENTA + Style.BRIGHT}[ Check-In{Style.RESET_ALL}"
-                        f"{Fore.GREEN + Style.BRIGHT} Is Claimed {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA + Style.BRIGHT}] [ Balance{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} {check_in['points']/100} $ASRR {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                    )
-                else:
-                    self.log(
-                        f"{Fore.MAGENTA + Style.BRIGHT}[ Check-In{Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT} Isn't Claimed {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                    )
-            else:
-                claim_utc = datetime.fromisoformat(claim_time).replace(tzinfo=timezone.utc)
-                claim_wib = claim_utc.astimezone(wib).strftime('%x %X %Z')
+        balance = "N/A"
+
+        user = await self.user_data(token)
+        if user:
+            balance = user.get("points", 0) / 100
+        
+        self.log(
+            f"{Fore.CYAN+Style.BRIGHT}Balance :{Style.RESET_ALL}"
+            f"{Fore.WHITE+Style.BRIGHT} {balance} $ASRR {Style.RESET_ALL}"
+        )
+
+        meta = await self.user_meta(token)
+        if not meta:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} GET Data Failed {Style.RESET_ALL}"
+            )
+            return
+
+        claim_time = meta.get('daily_points_start_at', None)
+
+        if claim_time is None:
+            claim = await self.claim_daily(token)
+            if claim:
+                balance = claim_wib.get("points", 0) / 100
                 self.log(
-                    f"{Fore.MAGENTA + Style.BRIGHT}[ Check-In{Style.RESET_ALL}"
-                    f"{Fore.YELLOW + Style.BRIGHT} Not Time to Claim {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA + Style.BRIGHT}] [ Claim at{Style.RESET_ALL}"
-                    f"{Fore.WHITE + Style.BRIGHT} {claim_wib} {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                    f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                    f"{Fore.GREEN+Style.BRIGHT} Is Claimed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.CYAN+Style.BRIGHT} Balance Now {Style.RESET_ALL}"
+                    f"{Fore.WHITE+Style.BRIGHT}{balance} $ASRR{Style.RESET_ALL}"
+                )
+            else:
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Isn't Claimed {Style.RESET_ALL}"
                 )
         else:
+            claim_utc = datetime.fromisoformat(claim_time).replace(tzinfo=timezone.utc)
+            claim_wib = claim_utc.astimezone(wib).strftime('%x %X %Z')
             self.log(
-                f"{Fore.MAGENTA + Style.BRIGHT}[ Check-In{Style.RESET_ALL}"
-                f"{Fore.RED + Style.BRIGHT} Data Is None {Style.RESET_ALL}"
-                f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                f"{Fore.YELLOW+Style.BRIGHT} Is Already Claimed {Style.RESET_ALL}"
+                f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                f"{Fore.CYAN+Style.BRIGHT} Next Claim at {Style.RESET_ALL}"
+                f"{Fore.WHITE+Style.BRIGHT}{claim_wib}{Style.RESET_ALL}"
             )
 
     async def main(self):
@@ -272,15 +275,20 @@ class Assisterr:
                     f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT}{len(accounts)}{Style.RESET_ALL}"
                 )
-                self.log(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}"*75)
                 
+                separator = "=" * 23
                 for account in accounts:
-                    account = account.strip()
                     if account:
-                        await self.process_accounts(account)
-                        self.log(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}"*75)
+                        address = self.generate_address(account)
+                        self.log(
+                            f"{Fore.CYAN + Style.BRIGHT}{separator}[{Style.RESET_ALL}"
+                            f"{Fore.WHITE + Style.BRIGHT} {self.mask_account(address)} {Style.RESET_ALL}"
+                            f"{Fore.CYAN + Style.BRIGHT}]{separator}{Style.RESET_ALL}"
+                        )
+                        await self.process_accounts(account, address)
                         await asyncio.sleep(3)
 
+                self.log(f"{Fore.CYAN + Style.BRIGHT}={Style.RESET_ALL}"*68)
                 seconds = 6 * 60 * 60
                 while seconds > 0:
                     formatted_time = self.format_seconds(seconds)
