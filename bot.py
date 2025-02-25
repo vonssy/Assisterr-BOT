@@ -271,6 +271,250 @@ class Assisterr:
                     continue
 
                 return None
+
+    # 1. Twitter Follow Task
+    async def claim_twitter_follow(self, token: str, proxy=None, retries=5):
+        url = "https://api.assisterr.ai/incentive/users/me/permanent_tasks/twitter_follow/"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {token}",
+            "Connection": "keep-alive",
+            "Content-Type": "application/json"
+        }
+        data = json.dumps({"proof": "twitter_follow_proof"})  # Add appropriate proof data if needed
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                return None
+
+    # 2. Telegram Subscribe Task
+    async def claim_telegram_subscribe(self, token: str, proxy=None, retries=5):
+        url = "https://api.assisterr.ai/incentive/users/me/permanent_tasks/telegram_subscribe/"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {token}",
+            "Connection": "keep-alive",
+            "Content-Type": "application/json"
+        }
+        data = json.dumps({"proof": "telegram_subscribe_proof"})  # Add appropriate proof data if needed
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                return None
+    
+    # 3. Twitter Like Task
+    async def claim_twitter_like(self, token: str, proxy=None, retries=5):
+        url = "https://api.assisterr.ai/incentive/users/me/permanent_tasks/twitter_like/"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {token}",
+            "Connection": "keep-alive",
+            "Content-Type": "application/json"
+        }
+        data = json.dumps({"proof": "twitter_like_proof"})  # Add appropriate proof data if needed
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                return None
+    
+    # 4. Twitter Repost Task
+    async def claim_twitter_repost(self, token: str, proxy=None, retries=5):
+        url = "https://api.assisterr.ai/incentive/users/me/permanent_tasks/twitter_repost/"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {token}",
+            "Connection": "keep-alive",
+            "Content-Type": "application/json"
+        }
+        data = json.dumps({"proof": "twitter_repost_proof"})  # Add appropriate proof data if needed
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                return None
+    
+    # 5. DevAI Subscribe Task
+    async def claim_devai_subscribe(self, token: str, proxy=None, retries=5):
+        url = "https://api.assisterr.ai/incentive/users/me/permanent_tasks/devai_subscribe/"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {token}",
+            "Connection": "keep-alive",
+            "Content-Type": "application/json"
+        }
+        data = json.dumps({"proof": "done"})  # Add appropriate proof data if needed
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                return None
+    
+    # 6. DexScreener Support Task
+    async def claim_dexscreener(self, token: str, proxy=None, retries=5):
+        url = "https://api.assisterr.ai/incentive/users/me/permanent_tasks/devai_support/"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {token}",
+            "Connection": "keep-alive",
+            "Content-Type": "application/json"
+        }
+        data = json.dumps({"proof": "dexscreener_support_proof", "address": "your_wallet_address"})  # Add appropriate proof data
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                return None
+    
+    # 7. DevAI Like and Comment Task
+    async def claim_like_and_comment(self, token: str, proxy=None, retries=5):
+        url = "https://api.assisterr.ai/incentive/users/me/permanent_tasks/devai_like_comment/"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {token}",
+            "Connection": "keep-alive",
+            "Content-Type": "application/json"
+        }
+        data = json.dumps({"proof": "like_comment_proof", "url": "https://example.com/post"})  # Add appropriate proof data
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                return None
+    
+    # 8. DevAI Congratulate Task
+    async def claim_congratulate(self, token: str, proxy=None, retries=5):
+        url = "https://api.assisterr.ai/incentive/users/me/permanent_tasks/devai_congratulate/"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {token}",
+            "Connection": "keep-alive",
+            "Content-Type": "application/json"
+        }
+        data = json.dumps({"proof": "congratulate_proof", "url": "https://example.com/post"})  # Add appropriate proof data
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                return None
+    
+    # 9. DevAI Telegram Task
+    async def claim_devai_telegram(self, token: str, proxy=None, retries=5):
+        url = "https://api.assisterr.ai/incentive/users/me/permanent_tasks/devai_telegram/"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {token}",
+            "Connection": "keep-alive",
+            "Content-Type": "application/json"
+        }
+        data = json.dumps({"proof": "telegram_proof", "username": "your_telegram_username"})  # Add appropriate proof data
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                return None
+
+    async def claim_all_tasks(self, token: str, proxy=None):
+        tasks = [
+            ("Twitter Follow", self.claim_twitter_follow),
+            ("Telegram Subscribe", self.claim_telegram_subscribe),
+            ("Twitter Like", self.claim_twitter_like),
+            ("Twitter Repost", self.claim_twitter_repost),
+            ("DevAI Subscribe", self.claim_devai_subscribe),
+            ("DexScreener Support", self.claim_dexscreener),
+            ("Like & Comment", self.claim_like_and_comment),
+            ("Congratulate", self.claim_congratulate),
+            ("DevAI Telegram", self.claim_devai_telegram)
+        ]
+        
+        results = {}
+        for task_name, task_func in tasks:
+            try:
+                result = await task_func(token, proxy)
+                status = "Claimed" if result else "Failed"
+                results[task_name] = status
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Task    :{Style.RESET_ALL}"
+                    f"{Fore.WHITE+Style.BRIGHT} {task_name} {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.GREEN+Style.BRIGHT if status == 'Claimed' else Fore.RED+Style.BRIGHT} {status} {Style.RESET_ALL}"
+                )
+                await asyncio.sleep(2)  # Add a small delay between task claims
+            except Exception as e:
+                results[task_name] = "Error"
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Task    :{Style.RESET_ALL}"
+                    f"{Fore.WHITE+Style.BRIGHT} {task_name} {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Error: {str(e)[:50]} {Style.RESET_ALL}"
+                )
+        
+        return results
         
     async def process_accounts(self, account: str, address: str, use_proxy: bool):
         proxy = self.get_next_proxy_for_account(address) if use_proxy else None
@@ -351,6 +595,24 @@ class Assisterr:
                 f"{Fore.CYAN+Style.BRIGHT} Next Claim at {Style.RESET_ALL}"
                 f"{Fore.WHITE+Style.BRIGHT}{claim_wib}{Style.RESET_ALL}"
             )
+        
+        # Attempt to claim all available tasks
+        self.log(
+            f"{Fore.CYAN+Style.BRIGHT}Tasks   :{Style.RESET_ALL}"
+            f"{Fore.WHITE+Style.BRIGHT} Attempting to claim all tasks {Style.RESET_ALL}"
+        )
+        await self.claim_all_tasks(token, proxy)
+        
+        # Get updated balance after claiming tasks
+        user = await self.user_data(token, proxy)
+        if user:
+            new_balance = user.get("points", 0) / 100
+            if new_balance != balance:
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Update  :{Style.RESET_ALL}"
+                    f"{Fore.GREEN+Style.BRIGHT} New Balance {Style.RESET_ALL}"
+                    f"{Fore.WHITE+Style.BRIGHT}{new_balance} $ASRR {Fore.GREEN+Style.BRIGHT}(+{new_balance - balance}) {Style.RESET_ALL}"
+                )
 
     async def main(self):
         try:
@@ -387,6 +649,9 @@ class Assisterr:
                         await asyncio.sleep(3)
 
                 self.log(f"{Fore.CYAN + Style.BRIGHT}={Style.RESET_ALL}"*68)
+                self.log(
+                    f"{Fore.GREEN + Style.BRIGHT}All tasks completed for all accounts. Waiting for next cycle.{Style.RESET_ALL}"
+                )
                 seconds = 6 * 60 * 60
                 while seconds > 0:
                     formatted_time = self.format_seconds(seconds)
@@ -402,18 +667,12 @@ class Assisterr:
                     seconds -= 1
 
         except FileNotFoundError:
-            self.log(f"{Fore.RED}File 'accounts.txt' Not Found.{Style.RESET_ALL}")
+            self.log(f"{Fore.RED + Style.BRIGHT}File accounts.txt Not Found.{Style.RESET_ALL}")
             return
         except Exception as e:
-            self.log(f"{Fore.RED+Style.BRIGHT}Error: {e}{Style.RESET_ALL}")
+            self.log(f"{Fore.RED + Style.BRIGHT}An error occurred: {e}{Style.RESET_ALL}")
+            return
 
 if __name__ == "__main__":
-    try:
-        bot = Assisterr()
-        asyncio.run(bot.main())
-    except KeyboardInterrupt:
-        print(
-            f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-            f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-            f"{Fore.RED + Style.BRIGHT}[ EXIT ] Assisterr - BOT{Style.RESET_ALL}                                       "                              
-        )
+    assisterr = Assisterr()
+    asyncio.run(assisterr.main())
