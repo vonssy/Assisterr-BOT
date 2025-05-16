@@ -25,6 +25,7 @@ class Assisterr:
             "Sec-Fetch-Site": "same-site",
             "User-Agent": FakeUserAgent().random
         }
+        self.BASE_API = "https://api.assisterr.ai/incentive"
         self.proxies = []
         self.proxy_index = 0
         self.account_proxies = {}
@@ -117,11 +118,9 @@ class Assisterr:
             decode_account = b58decode(account)
             signing_key = SigningKey(decode_account[:32])
             verify_key = signing_key.verify_key
-
             address = b58encode(verify_key.encode()).decode()
             
             return address
-
         except Exception as e:
             return None
 
@@ -129,30 +128,27 @@ class Assisterr:
         try:
             decode_account = b58decode(account)
             signing_key = SigningKey(decode_account[:32])
-
             encode_message = message.encode('utf-8')
             signature = signing_key.sign(encode_message)
-
             signature_base58 = b58encode(signature.signature).decode()
 
-            data = {
+            payload = {
                 "message": message, 
                 "signature": signature_base58, 
                 "key": address
             }
             
-            return data
-
+            return payload
         except Exception as e:
             return None
         
     def print_question(self):
         while True:
             try:
-                print("1. Run With Monosans Proxy")
-                print("2. Run With Private Proxy")
-                print("3. Run Without Proxy")
-                choose = int(input("Choose [1/2/3] -> ").strip())
+                print(f"{Fore.WHITE + Style.BRIGHT}1. Run With Monosans Proxy{Style.RESET_ALL}")
+                print(f"{Fore.WHITE + Style.BRIGHT}2. Run With Private Proxy{Style.RESET_ALL}")
+                print(f"{Fore.WHITE + Style.BRIGHT}3. Run Without Proxy{Style.RESET_ALL}")
+                choose = int(input(f"{Fore.BLUE + Style.BRIGHT}Choose [1/2/3] -> {Style.RESET_ALL}").strip())
 
                 if choose in [1, 2, 3]:
                     proxy_type = (
@@ -161,33 +157,52 @@ class Assisterr:
                         "Run Without Proxy"
                     )
                     print(f"{Fore.GREEN + Style.BRIGHT}{proxy_type} Selected.{Style.RESET_ALL}")
-                    return choose
+                    break
                 else:
                     print(f"{Fore.RED + Style.BRIGHT}Please enter either 1, 2 or 3.{Style.RESET_ALL}")
             except ValueError:
                 print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number (1, 2 or 3).{Style.RESET_ALL}")
+
+        rotate = False
+        if choose in [1, 2]:
+            while True:
+                rotate = input(f"{Fore.BLUE + Style.BRIGHT}Rotate Invalid Proxy? [y/n] -> {Style.RESET_ALL}").strip()
+
+                if rotate in ["y", "n"]:
+                    rotate = rotate == "y"
+                    break
+                else:
+                    print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter 'y' or 'n'.{Style.RESET_ALL}")
+
+        return choose, rotate
+    
+    async def check_connection(self, proxy=None):
+        connector = ProxyConnector.from_url(proxy) if proxy else None
+        try:
+            async with ClientSession(connector=connector, timeout=ClientTimeout(total=30)) as session:
+                async with session.get(url="https://build.assisterr.ai", headers={}) as response:
+                    response.raise_for_status()
+                    return True
+        except (Exception, ClientResponseError) as e:
+            return None
     
     async def get_message(self, proxy=None, retries=5):
-        url = "https://api.assisterr.ai/incentive/auth/login/get_message/"
+        url = f"{self.BASE_API}/auth/login/get_message/"
         for attempt in range(retries):
             connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
                 async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
                     async with session.get(url=url, headers=self.headers) as response:
-                        if response.status == 403:
-                            return None
-                        
                         response.raise_for_status()
                         return await response.json()
             except (Exception, ClientResponseError) as e:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-
                 return None
     
     async def user_login(self, account: str, address: str, message: str, proxy=None, retries=5):
-        url = "https://api.assisterr.ai/incentive/auth/login/"
+        url = f"{self.BASE_API}/auth/login/"
         data = json.dumps(self.generate_payload(account, address, message))
         headers = {
             **self.headers,
@@ -201,16 +216,15 @@ class Assisterr:
                     async with session.post(url=url, headers=headers, data=data) as response:
                         response.raise_for_status()
                         result = await response.json()
-                        return result['access_token']
+                        return result["access_token"]
             except (Exception, ClientResponseError) as e:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-
                 return None
     
     async def user_data(self, token: str, proxy=None, retries=5):
-        url = "https://api.assisterr.ai/incentive/users/me/"
+        url = f"{self.BASE_API}/users/me/"
         headers = {
             **self.headers,
             "Authorization": f"Bearer {token}"
@@ -226,11 +240,10 @@ class Assisterr:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-
                 return None
     
     async def user_meta(self, token: str, proxy=None, retries=5):
-        url = "https://api.assisterr.ai/incentive/users/me/meta/"
+        url = f"{self.BASE_API}/users/me/meta/"
         headers = {
             **self.headers,
             "Authorization": f"Bearer {token}"
@@ -246,11 +259,10 @@ class Assisterr:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-
                 return None
     
     async def claim_daily(self, token: str, proxy=None, retries=5):
-        url = "https://api.assisterr.ai/incentive/users/me/daily_points/"
+        url = f"{self.BASE_API}/users/me/daily_points/"
         headers = {
             **self.headers,
             "Authorization": f"Bearer {token}",
@@ -269,95 +281,158 @@ class Assisterr:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-
                 return None
-        
-    async def process_accounts(self, account: str, address: str, use_proxy: bool):
+            
+    async def process_check_connection(self, address: str, use_proxy: bool, rotate_proxy: bool):
+        message = "Checking Connection, Wait..."
+        if use_proxy:
+            message = "Checking Proxy Connection, Wait..."
+
+        print(
+            f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT}{message}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
+
         proxy = self.get_next_proxy_for_account(address) if use_proxy else None
 
-        message = None
-        while message is None:
-            message = await self.get_message(proxy)
-            if not message:
-                self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}Status  :{Style.RESET_ALL}"
-                    f"{Fore.RED+Style.BRIGHT} GET Message Failed {Style.RESET_ALL}"
-                )
-                proxy = self.rotate_proxy_for_account(address) if use_proxy else None
-                continue
+        if rotate_proxy:
+            is_valid = None
+            while is_valid is None:
+                is_valid = await self.check_connection(proxy)
+                if not is_valid:
+                    self.log(
+                        f"{Fore.CYAN+Style.BRIGHT}Proxy   :{Style.RESET_ALL}"
+                        f"{Fore.WHITE+Style.BRIGHT} {proxy} {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                        f"{Fore.RED+Style.BRIGHT} Not 200 OK, {Style.RESET_ALL}"
+                        f"{Fore.YELLOW+Style.BRIGHT}Rotating Proxy...{Style.RESET_ALL}"
+                    )
+                    proxy = self.rotate_proxy_for_account(address) if use_proxy else None
+                    await asyncio.sleep(5)
+                    continue
 
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Proxy   :{Style.RESET_ALL}"
+                    f"{Fore.WHITE+Style.BRIGHT} {proxy} {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.GREEN+Style.BRIGHT} 200 OK {Style.RESET_ALL}                  "
+                )
+
+                return True
+
+        is_valid = await self.check_connection(proxy)
+        if not is_valid:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}Proxy   :{Style.RESET_ALL}"
+                f"{Fore.WHITE+Style.BRIGHT} {proxy} {Style.RESET_ALL}"
+                f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} Not 200 OK {Style.RESET_ALL}          "
+            )
+            return False
+        
         self.log(
             f"{Fore.CYAN+Style.BRIGHT}Proxy   :{Style.RESET_ALL}"
             f"{Fore.WHITE+Style.BRIGHT} {proxy} {Style.RESET_ALL}"
+            f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+            f"{Fore.GREEN+Style.BRIGHT} 200 OK {Style.RESET_ALL}                  "
         )
 
-        token = await self.user_login(account, address, message, proxy)
-        if not token:
+        return True
+    
+    async def process_get_message(self, address: str, use_proxy: bool):
+        proxy = self.get_next_proxy_for_account(address) if use_proxy else None
+
+        message = await self.get_message(proxy)
+        if not message:
             self.log(
                 f"{Fore.CYAN+Style.BRIGHT}Status  :{Style.RESET_ALL}"
-                f"{Fore.RED+Style.BRIGHT} Login Failed {Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} GET Message Failed {Style.RESET_ALL}"
             )
-            return
+            return None
         
-        self.log(
-            f"{Fore.CYAN+Style.BRIGHT}Status  :{Style.RESET_ALL}"
-            f"{Fore.GREEN+Style.BRIGHT} Login Success {Style.RESET_ALL}"
-        )
+        return message
+    
+    async def process_user_login(self, account: str, address: str, use_proxy: bool):
+        message = await self.process_get_message(address, use_proxy)
+        if message:
+            proxy = self.get_next_proxy_for_account(address) if use_proxy else None
 
-        balance = "N/A"
-
-        user = await self.user_data(token, proxy)
-        if user:
-            balance = user.get("points", 0) / 100
+            token = await self.user_login(account, address, message, proxy)
+            if not token:
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Login Failed {Style.RESET_ALL}"
+                )
+                return None
+            
+            return token
         
-        self.log(
-            f"{Fore.CYAN+Style.BRIGHT}Balance :{Style.RESET_ALL}"
-            f"{Fore.WHITE+Style.BRIGHT} {balance} $ASRR {Style.RESET_ALL}"
-        )
-
-        meta = await self.user_meta(token, proxy)
-        if not meta:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
-                f"{Fore.RED+Style.BRIGHT} GET Data Failed {Style.RESET_ALL}"
-            )
-            return
-
-        claim_time = meta.get('daily_points_start_at', None)
-
-        if claim_time is None:
-            claim = await self.claim_daily(token, proxy)
-            if claim:
-                balance = claim.get("points", 0) / 100
+    async def process_accounts(self, account: str, address: str, use_proxy: bool, rotate_proxy: bool):
+        is_valid = await self.process_check_connection(address, use_proxy, rotate_proxy)
+        if is_valid:
+            token = await self.process_user_login(account, address, use_proxy)
+            if token:
+                proxy = self.get_next_proxy_for_account(address) if use_proxy else None
                 self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
-                    f"{Fore.GREEN+Style.BRIGHT} Is Claimed {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                    f"{Fore.CYAN+Style.BRIGHT} Balance Now {Style.RESET_ALL}"
-                    f"{Fore.WHITE+Style.BRIGHT}{balance} $ASRR{Style.RESET_ALL}"
+                    f"{Fore.CYAN+Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                    f"{Fore.GREEN+Style.BRIGHT} Login Success {Style.RESET_ALL}"
                 )
-            else:
+        
+                balance = "N/A"
+                user = await self.user_data(token, proxy)
+                if user:
+                    balance = user.get("points", 0) / 100
+                
                 self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
-                    f"{Fore.RED+Style.BRIGHT} Isn't Claimed {Style.RESET_ALL}"
+                    f"{Fore.CYAN+Style.BRIGHT}Balance :{Style.RESET_ALL}"
+                    f"{Fore.WHITE+Style.BRIGHT} {balance} $ASRR {Style.RESET_ALL}"
                 )
-        else:
-            claim_utc = datetime.fromisoformat(claim_time).replace(tzinfo=timezone.utc)
-            claim_wib = claim_utc.astimezone(wib).strftime('%x %X %Z')
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
-                f"{Fore.YELLOW+Style.BRIGHT} Is Already Claimed {Style.RESET_ALL}"
-                f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                f"{Fore.CYAN+Style.BRIGHT} Next Claim at {Style.RESET_ALL}"
-                f"{Fore.WHITE+Style.BRIGHT}{claim_wib}{Style.RESET_ALL}"
-            )
+
+                metadata = await self.user_meta(token, proxy)
+                if metadata:
+                    claim_time = metadata.get("daily_points_start_at", None)
+
+                    if claim_time is None:
+                        claim = await self.claim_daily(token, proxy)
+                        if claim:
+                            balance = claim.get("points", 0) / 100
+                            self.log(
+                                f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                                f"{Fore.GREEN+Style.BRIGHT} Claimed Successfully {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                                f"{Fore.CYAN+Style.BRIGHT} Current Balance: {Style.RESET_ALL}"
+                                f"{Fore.WHITE+Style.BRIGHT}{balance} $ASRR{Style.RESET_ALL}"
+                            )
+                        else:
+                            self.log(
+                                f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                                f"{Fore.RED+Style.BRIGHT} Not Claimed {Style.RESET_ALL}"
+                            )
+                    else:
+                        claim_utc = datetime.fromisoformat(claim_time).replace(tzinfo=timezone.utc)
+                        claim_wib = claim_utc.astimezone(wib).strftime('%x %X %Z')
+                        self.log(
+                            f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                            f"{Fore.YELLOW+Style.BRIGHT} Already Claimed {Style.RESET_ALL}"
+                            f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                            f"{Fore.CYAN+Style.BRIGHT} Next Claim at: {Style.RESET_ALL}"
+                            f"{Fore.WHITE+Style.BRIGHT}{claim_wib}{Style.RESET_ALL}"
+                        )
+                else:
+                    self.log(
+                        f"{Fore.CYAN+Style.BRIGHT}Check-In:{Style.RESET_ALL}"
+                        f"{Fore.RED+Style.BRIGHT} GET Status Failed {Style.RESET_ALL}"
+                    )
 
     async def main(self):
         try:
             with open('accounts.txt', 'r') as file:
                 accounts = [line.strip() for line in file if line.strip()]
             
-            use_proxy_choice = self.print_question()
+            use_proxy_choice, rotate_proxy = self.print_question()
 
             while True:
                 use_proxy = False
@@ -383,7 +458,7 @@ class Assisterr:
                             f"{Fore.WHITE + Style.BRIGHT} {self.mask_account(address)} {Style.RESET_ALL}"
                             f"{Fore.CYAN + Style.BRIGHT}]{separator}{Style.RESET_ALL}"
                         )
-                        await self.process_accounts(account, address, use_proxy)
+                        await self.process_accounts(account, address, use_proxy, rotate_proxy)
                         await asyncio.sleep(3)
 
                 self.log(f"{Fore.CYAN + Style.BRIGHT}={Style.RESET_ALL}"*68)

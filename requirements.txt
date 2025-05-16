@@ -1,6 +1,7 @@
 aiohttp
-base58
-pynacl
+aiohttp-socks
 fake-useragent
 colorama
+base58
+pynacl
 pytz
