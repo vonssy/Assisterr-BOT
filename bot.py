@@ -29,6 +29,7 @@ class Assisterr:
         self.proxies = []
         self.proxy_index = 0
         self.account_proxies = {}
+        self.message_nonce = {}
         self.access_tokens = {}
 
     def clear_terminal(self):
@@ -121,10 +122,11 @@ class Assisterr:
         except Exception as e:
             return None
 
-    def generate_payload(self, account: str, address: str, message: str):
+    def generate_payload(self, account: str, address: str):
         try:
             decode_account = b58decode(account)
             signing_key = SigningKey(decode_account[:32])
+            message = self.message_nonce[address]
             encode_message = message.encode('utf-8')
             signature = signing_key.sign(encode_message)
             signature_base58 = b58encode(signature.signature).decode()
@@ -189,16 +191,18 @@ class Assisterr:
                     response.raise_for_status()
                     return await response.json()
         except (Exception, ClientResponseError) as e:
-            return self.log(
+            self.log(
                 f"{Fore.CYAN+Style.BRIGHT}Error   :{Style.RESET_ALL}"
                 f"{Fore.RED+Style.BRIGHT} GET Nonce Msg Failed {Style.RESET_ALL}"
                 f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
                 f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
             )
+        
+        return None
     
-    async def user_login(self, account: str, address: str, message: str, proxy=None, retries=5):
+    async def user_login(self, account: str, address: str, proxy=None, retries=5):
         url = f"{self.BASE_API}/auth/login/"
-        data = json.dumps(self.generate_payload(account, address, message))
+        data = json.dumps(self.generate_payload(account, address))
         headers = {
             **self.headers,
             "Content-Length": str(len(data)),
@@ -216,12 +220,14 @@ class Assisterr:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return self.log(
+                self.log(
                     f"{Fore.CYAN+Style.BRIGHT}Error   :{Style.RESET_ALL}"
                     f"{Fore.RED+Style.BRIGHT} Login Failed {Style.RESET_ALL}"
                     f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
                     f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
                 )
+
+        return None
     
     async def user_data(self, address: str, proxy=None, retries=5):
         url = f"{self.BASE_API}/users/me/"
@@ -241,12 +247,14 @@ class Assisterr:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return self.log(
+                self.log(
                     f"{Fore.CYAN+Style.BRIGHT}Error   :{Style.RESET_ALL}"
                     f"{Fore.RED+Style.BRIGHT} GET $ASRR Balance Failed {Style.RESET_ALL}"
                     f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
                     f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
                 )
+
+        return None
     
     async def user_meta(self, address: str, proxy=None, retries=5):
         url = f"{self.BASE_API}/users/me/meta/"
@@ -266,12 +274,14 @@ class Assisterr:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return self.log(
+                self.log(
                     f"{Fore.CYAN+Style.BRIGHT}Error   :{Style.RESET_ALL}"
                     f"{Fore.RED+Style.BRIGHT} GET Check-In Status Failed {Style.RESET_ALL}"
                     f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
                     f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
                 )
+
+        return None
     
     async def claim_daily(self, address: str, proxy=None, retries=5):
         url = f"{self.BASE_API}/users/me/daily_points/"
@@ -294,12 +304,14 @@ class Assisterr:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return self.log(
+                self.log(
                     f"{Fore.CYAN+Style.BRIGHT}Error   :{Style.RESET_ALL}"
                     f"{Fore.RED+Style.BRIGHT} Check-In Not Claimed {Style.RESET_ALL}"
                     f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
                     f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
                 )
+
+        return None
     
     async def process_get_message(self, address: str, use_proxy: bool, rotate_proxy: bool):
         while True:
@@ -311,7 +323,8 @@ class Assisterr:
 
             message = await self.get_message(proxy)
             if message:
-                return message
+                self.message_nonce[address] = message
+                return True
 
             if rotate_proxy:
                 proxy = self.rotate_proxy_for_account(address)
@@ -321,11 +334,11 @@ class Assisterr:
             return False
     
     async def process_user_login(self, account: str, address: str, use_proxy: bool, rotate_proxy: bool):
-        message = await self.process_get_message(address, use_proxy, rotate_proxy)
-        if message:
+        created = await self.process_get_message(address, use_proxy, rotate_proxy)
+        if created:
             proxy = self.get_next_proxy_for_account(address) if use_proxy else None
 
-            login = await self.user_login(account, address, message, proxy)
+            login = await self.user_login(account, address, proxy)
             if login:
                 self.access_tokens[address] = login["access_token"]
 
